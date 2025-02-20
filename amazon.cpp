@@ -6,9 +6,11 @@
 #include <iomanip>
 #include <algorithm>
 #include "product.h"
+#include "user.h"
 #include "db_parser.h"
 #include "product_parser.h"
 #include "util.h"
+#include "mydatastore.h"
 
 using namespace std;
 struct ProdNameSorter {
@@ -29,8 +31,8 @@ int main(int argc, char* argv[])
      * Declare your derived DataStore object here replacing
      *  DataStore type to your derived type
      ****************/
-    DataStore ds;
-
+    MyDataStore ds;
+    std::map<std::string, std::deque<Product*>> cartMapping;
 
 
     // Instantiate the individual section and product parsers we want
@@ -61,7 +63,7 @@ int main(int argc, char* argv[])
     cout << "  QUIT new_db_filename               " << endl;
     cout << "====================================" << endl;
 
-    vector<Product*> hits;
+    vector<Product*> hits ={};
     bool done = false;
     while(!done) {
         cout << "\nEnter command: " << endl;
@@ -98,6 +100,105 @@ int main(int argc, char* argv[])
                     ofile.close();
                 }
                 done = true;
+            }else if(cmd == "VIEWCART"){
+              string uname;
+              if(ss>>uname){
+                vector<User*> usersData = ds.users();
+                int check=0;
+                for(unsigned int i=0; i<usersData.size(); i++){
+                  if(usersData[i]->getName()==uname){
+                    std::map<std::string, std::deque<Product*>>::iterator it = cartMapping.find(uname);
+                    deque<Product*> cartDetails;
+                    if(it != cartMapping.end()){
+                      cartDetails = it->second;
+                    }
+                    for(unsigned int i=0; i<cartDetails.size(); i++){
+                      cout << "Hit " << setw(3) << (i+1) << endl;
+                      cout<<cartDetails[i]->displayString() << endl; 
+                    }
+                    check=1;
+                    break;
+                  }
+                }
+                if(check==0){
+                  cout<<"Invalid username"<<endl;
+                }
+              }
+            }else if(cmd == "ADD"){
+              string uname;
+              if(ss>>uname){
+                User* user_ = nullptr;
+                vector<User*> usersData = ds.users();
+                for(unsigned int i=0; i<usersData.size(); i++){
+                  if(usersData[i]->getName()==uname){
+                    user_ = usersData[i];
+                    break;
+                  }
+                }
+                if(user_ == nullptr){
+                  cout<<"Invalid request"<<endl;
+                }else{
+                  unsigned int hitIndex =0;
+                  if(ss>>hitIndex){
+                    if(hitIndex<=hits.size()&&hitIndex>0){
+                      std::map<std::string, std::deque<Product*>>::iterator search = cartMapping.find(uname);
+                      if(search!=cartMapping.end()){
+                        search->second.push_back(hits[hitIndex-1]);
+                      }else{
+                        std::deque<Product*> productMapping;
+                        productMapping.push_back(hits[hitIndex-1]);
+                        cartMapping.insert(std::make_pair(uname, productMapping));
+                      }
+                      //cout<<"SUCESSFULLY ADDED TO CART"<<endl;
+                    }else{
+                      cout<<"Invalid request"<<endl;
+                    }
+                  }else{
+                    cout<<"Invalid request"<<endl;
+                  }
+                }
+              }
+            }else if(cmd=="BUYCART"){
+              string uname;
+              if(ss>>uname){
+                User* user_ = nullptr;
+                vector<User*> usersData = ds.users();
+                for(unsigned int i=0; i<usersData.size(); i++){
+                  if(usersData[i]->getName()==uname){
+                    user_ = usersData[i];
+                    break;
+                  }
+                }
+                if(user_ == nullptr){
+                  cout<<"Invalid Username"<<endl;
+                }else{
+                  //double totalCost = 0;
+                  std::deque<Product*> workingCart;
+                  std::map<std::string, std::deque<Product*>>::iterator it = cartMapping.find(uname);
+                    //vector<Product*> cartDetails;
+                  if(it != cartMapping.end()){
+                    workingCart = it->second;
+                  }
+                  int size__ = workingCart.size();
+                  int counter =0;
+                  while(!workingCart.empty() && counter<size__){   
+                    Product* pp = workingCart.front();
+                    if(user_->getBalance() >= pp->getPrice()&&pp->getQty()>0){
+                      user_->deductAmount(pp->getPrice());
+                      pp->subtractQty(1);
+                      workingCart.pop_front();
+                      size__--;
+                    }else{
+                      workingCart.push_back(pp);
+                      workingCart.pop_front(); 
+                      counter++;
+                      //cout<<workingCart.size()<<endl;
+                    }
+                  }
+                  it->second = workingCart;
+                }
+                
+              }
             }
 	    /* Add support for other commands here */
 
@@ -123,8 +224,20 @@ void displayProducts(vector<Product*>& hits)
     std::sort(hits.begin(), hits.end(), ProdNameSorter());
     for(vector<Product*>::iterator it = hits.begin(); it != hits.end(); ++it) {
         cout << "Hit " << setw(3) << resultNo << endl;
+        //cout<<"SHITE"<<endl;
         cout << (*it)->displayString() << endl;
+        //cout<<"The second SHITE"<<endl;
         cout << endl;
         resultNo++;
+        //cout<<"hhs"<<endl;
     }
+    // for(unsigned int i=0; i<hits.size(); i++) {
+    //     cout << "Hit " << setw(3) << resultNo << endl;
+    //     //cout<<"SHITE"<<endl;
+    //     cout << hits[i]->displayString() << endl;
+    //     //cout<<"The second SHITE"<<endl;
+    //     cout << endl;
+    //     resultNo++;
+    //     //cout<<"hhs"<<endl;
+    // }
 }

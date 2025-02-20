@@ -17,13 +17,25 @@ std::set<std::string> parseStringToWords(string rawWords)
 {
 
 
-
-
-
-
-
-
-
+  string rawWord = convToLower(rawWords);
+  int len = rawWord.size();
+  std::set<std::string> retVal;
+  std::string currHolder = "";
+  for(int i=0; i<len; i++){
+    if(!((rawWord[i]>='a' && rawWord[i] <='z') || (rawWord[i]>='A' && rawWord[i]<='Z'))){
+      if(currHolder.size()>=2){
+        retVal.insert(currHolder);
+      }
+      currHolder = "";
+    }else{
+      currHolder += rawWord[i];
+    }
+  }
+  if(currHolder.size()>=2){
+    retVal.insert(currHolder);
+  }
+  currHolder = "";
+  return retVal;
 
 }
 
@@ -55,3 +67,19 @@ std::string &rtrim(std::string &s) {
 std::string &trim(std::string &s) {
     return ltrim(rtrim(s));
 }
+
+// int main(){
+//   std::set<char>
+//         p{'C', 'B', 'B', 'A'}, 
+//         q{'E', 'D', 'E', 'C'};
+//   std::set<char> o1 = setIntersection(p,q);
+//   std::set<char> o2 = setUnion(p,q);
+//   for (std::set<char>::iterator it = o1.begin(); it != o1.end(); ++it) {
+//     std::cout << *it << " ";
+//   }
+//   std::cout<<std::endl;
+//   for (std::set<char>::iterator it = o2.begin(); it != o2.end(); ++it) {
+//     std::cout << *it << " ";
+//   }
+//   //std::cout<<__cplusplus<<endl;
+// }
